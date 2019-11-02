@@ -1500,6 +1500,9 @@ public class BeansWrapper implements RichObjectWrapper, WriteProtectable {
     throws InvocationTargetException,
         IllegalAccessException,
         TemplateModelException {
+        
+        logMethodInvocation(object, method, args);
+        
         // [2.4]: Java's Method.invoke truncates numbers if the target type has not enough bits to hold the value.
         // There should at least be an option to check this.
         Object retval = method.invoke(object, args);
@@ -1510,6 +1513,19 @@ public class BeansWrapper implements RichObjectWrapper, WriteProtectable {
     }
 
    /**
+     * This hook can be used by subclasses
+     * e.g. for statistics about method invokation
+     * (which methods get called on which objects how often).
+     *  
+     * @param object
+     * @param method
+     * @param args
+     */
+    protected void logMethodInvocation(Object object, Method method, Object[] args) {
+        // TODO Auto-generated method stub
+    }
+
+/**
      * Returns a hash model that represents the so-called class static models.
      * Every class static model is itself a hash through which you can call
      * static methods on the specified class. To obtain a static model for a
