@@ -683,8 +683,37 @@ class ClassIntrospector {
         }
         
         if (readMethod != null || indexedReadMethod != null) {
-            introspData.put(pd.getName(), new FastPropertyDescriptor(readMethod, indexedReadMethod));
+            
+            if(isMethodAllowed(clazz, readMethod) || isMethodAllowed(clazz, indexedReadMethod)) {
+                introspData.put(pd.getName(), new FastPropertyDescriptor(readMethod, indexedReadMethod));
+            }
+            
         }
+    }
+
+    private boolean isMethodAllowed(Class<?> clazz, Method method) {
+        
+        if(method == null) {
+            return false;
+        }
+        
+        if (methodAppearanceFineTuner != null) {
+            
+            final MethodAppearanceDecision decision = new MethodAppearanceDecision();
+            decision.setDefaults(method);
+            
+            final MethodAppearanceDecisionInput decisionInput = new MethodAppearanceDecisionInput();
+            decisionInput.setContainingClass(clazz);
+            decisionInput.setMethod(method);
+
+            methodAppearanceFineTuner.process(decisionInput, decision);
+            
+            if(decision.getExposeMethodAs() == null && decision.getExposeAsProperty() == null) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     private void addGenericGetToClassIntrospectionData(Map<Object, Object> introspData,
