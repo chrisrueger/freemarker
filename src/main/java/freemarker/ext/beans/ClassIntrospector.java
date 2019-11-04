@@ -336,7 +336,7 @@ class ClassIntrospector {
             IdentityHashMap<Method, Void> argTypesUsedByIndexerPropReaders = null;
             for (int i = mdsSize - 1; i >= 0; --i) {
                 final Method method = getMatchingAccessibleMethod(mds.get(i).getMethod(), accessibleMethods);
-                if (method != null && isAllowedToExpose(method)) {
+                if (method != null && isAllowedToExpose(clazz, method)) {
                     decision.setDefaults(method);
                     if (methodAppearanceFineTuner != null) {
                         if (decisionInput == null) {
@@ -663,7 +663,7 @@ class ClassIntrospector {
     private void addPropertyDescriptorToClassIntrospectionData(Map<Object, Object> introspData,
             PropertyDescriptor pd, Class<?> clazz, Map<MethodSignature, List<Method>> accessibleMethods) {
         Method readMethod = getMatchingAccessibleMethod(pd.getReadMethod(), accessibleMethods);
-        if (readMethod != null && !isAllowedToExpose(readMethod)) {
+        if (readMethod != null && !isAllowedToExpose(clazz, readMethod)) {
             readMethod = null;
         }
         
@@ -671,7 +671,7 @@ class ClassIntrospector {
         if (pd instanceof IndexedPropertyDescriptor) {
             indexedReadMethod = getMatchingAccessibleMethod(
                     ((IndexedPropertyDescriptor) pd).getIndexedReadMethod(), accessibleMethods);
-            if (indexedReadMethod != null && !isAllowedToExpose(indexedReadMethod)) {
+            if (indexedReadMethod != null && !isAllowedToExpose(clazz, indexedReadMethod)) {
                 indexedReadMethod = null;
             }
             if (indexedReadMethod != null) {
@@ -809,8 +809,44 @@ class ClassIntrospector {
         }
     }
 
-    boolean isAllowedToExpose(Method method) {
-        return exposureLevel < BeansWrapper.EXPOSE_SAFE || !UnsafeMethods.isUnsafeMethod(method);
+    boolean isAllowedToExpose(Class<?> clazz, Method method) {
+        return exposureLevel < BeansWrapper.EXPOSE_SAFE || !UnsafeMethods.isUnsafeMethod(method) || !isMethodAllowedToExpose(clazz, method);
+    }
+    
+    /**
+     * Checks if a method is allowed to be exposed
+     * using the {@link MethodAppearanceFineTuner}
+     * 
+     * TODO this is just a Proof-of-concept implementation.
+     * 
+     * 
+     * @param clazz
+     * @param method
+     * @return
+     */
+    private boolean isMethodAllowedToExpose(Class<?> clazz, Method method) {
+        
+        if(method == null) {
+            return false;
+        }
+        
+        if (methodAppearanceFineTuner != null) {
+            
+            final MethodAppearanceDecision decision = new MethodAppearanceDecision();
+            decision.setDefaults(method);
+            
+            final MethodAppearanceDecisionInput decisionInput = new MethodAppearanceDecisionInput();
+            decisionInput.setContainingClass(clazz);
+            decisionInput.setMethod(method);
+
+            methodAppearanceFineTuner.process(decisionInput, decision);
+            
+            if(decision.getExposeMethodAs() == null && decision.getExposeAsProperty() == null) {
+                return false;
+            }
+        }
+        
+        return true;
     }
 
     private static Map<Method, Class<?>[]> getArgTypesByMethod(Map<Object, Object> classInfo) {
