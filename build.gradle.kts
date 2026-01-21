@@ -27,7 +27,7 @@ plugins {
     `freemarker-root`
     `maven-publish`
     signing
-    id("biz.aQute.bnd.builder") version "7.0.0"
+    id("biz.aQute.bnd.builder") version "7.2.1"
     id("eclipse")
 }
 
